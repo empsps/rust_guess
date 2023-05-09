@@ -63,7 +63,7 @@ impl fmt::Display for Hint {
             Hint::LessThan => write!(f, "menor que"),
             Hint::GreaterThan => write!(f, "maior que"),
             Hint::Multiple => write!(f, "múltiplo de"),
-            Hint::Divisible => write!(f, "divisível po"),
+            Hint::Divisible => write!(f, "divisível por"),
         }
     }
 }
@@ -147,13 +147,21 @@ fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, ()> {
             if current_guesses == *max_guesses {
                 return Err(());
             }
-            println!("Você errou! {} tentativas restantes.", current_guesses);
+            println!(
+                "Você errou! {} tentativas restantes.",
+                *max_guesses - current_guesses
+            );
+
+            let hint = give_hint(rand_number);
+            println!("{}", hint);
+
             print!("Tente novamente -> ");
             stdout().flush().unwrap();
         }
     }
 }
 
+#[allow(dead_code)]
 fn less_than_hint(number: &u16) -> u16 {
     let mut rng = thread_rng();
     let range: RangeInclusive<u16> = 2..=*number;
@@ -161,6 +169,7 @@ fn less_than_hint(number: &u16) -> u16 {
     rng.gen_range(range)
 }
 
+#[allow(dead_code)]
 fn greater_than_hint(number: &u16) -> u16 {
     let mut rng = thread_rng();
     let range: RangeInclusive<u16> = 2..=*number;
@@ -168,6 +177,7 @@ fn greater_than_hint(number: &u16) -> u16 {
     rng.gen_range(range)
 }
 
+#[allow(dead_code)]
 fn multiple_hint(number: &u16) -> u16 {
     let mut rng = thread_rng();
     let range: RangeInclusive<u16> = 2..=*number;
@@ -175,6 +185,7 @@ fn multiple_hint(number: &u16) -> u16 {
     rng.gen_range(range)
 }
 
+#[allow(dead_code)]
 fn divisible_hint(number: &u16) -> u16 {
     let mut rng = thread_rng();
     let range: RangeInclusive<u16> = 2..=*number;
@@ -236,8 +247,10 @@ fn main() {
     let result: Result<u16, ()> = guess_loop(&rand_number, &max_guesses);
     match result {
         Ok(guesses) => println!(
-            "Você acertou em {} tentativas! O número era {}.",
-            guesses, rand_number
+            "Você acertou em {0} tentativa{2}! O número era {1}.",
+            guesses,
+            rand_number,
+            if guesses > 1 { "s" } else { "" }
         ),
         Err(_) => println!("Você usou todas as tentativas e não acertou :/"),
     }
