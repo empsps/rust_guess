@@ -157,7 +157,6 @@ fn guess_loop(
             );
 
             let hint = give_hint(
-                rand_number,
                 less_than_nums,
                 greater_than_nums,
                 divisible_nums,
@@ -203,7 +202,6 @@ fn divisible_hint(divisible_nums: &mut Vec<u16>) -> u16 {
 }
 
 fn give_hint(
-    number: &u16,
     less_than_nums: &mut Vec<u16>,
     greater_than_nums: &mut Vec<u16>,
     divisible_nums: &mut Vec<u16>,
