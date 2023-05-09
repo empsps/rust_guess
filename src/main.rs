@@ -7,9 +7,17 @@ use rand::{thread_rng, Rng};
 
 #[derive(PartialEq, Eq)]
 enum Difficulty {
-    EASY,
-    MEDIUM,
-    HARD,
+    Easy,
+    Medium,
+    Hard,
+}
+
+#[derive(PartialEq, Eq)]
+enum Hint {
+    LessThan,
+    GreaterThan,
+    Multiple,
+    Divisible,
 }
 
 impl FromStr for Difficulty {
@@ -17,9 +25,23 @@ impl FromStr for Difficulty {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "1" => Ok(Difficulty::EASY),
-            "2" => Ok(Difficulty::MEDIUM),
-            "3" => Ok(Difficulty::HARD),
+            "1" => Ok(Difficulty::Easy),
+            "2" => Ok(Difficulty::Medium),
+            "3" => Ok(Difficulty::Hard),
+            _ => Err(()),
+        }
+    }
+}
+
+impl FromStr for Hint {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(Hint::LessThan),
+            "2" => Ok(Hint::GreaterThan),
+            "3" => Ok(Hint::Multiple),
+            "4" => Ok(Hint::Divisible),
             _ => Err(()),
         }
     }
@@ -28,9 +50,20 @@ impl FromStr for Difficulty {
 impl fmt::Display for Difficulty {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            Difficulty::EASY => write!(f, "fácil"),
-            Difficulty::MEDIUM => write!(f, "médio"),
-            Difficulty::HARD => write!(f, "difícil"),
+            Difficulty::Easy => write!(f, "fácil"),
+            Difficulty::Medium => write!(f, "médio"),
+            Difficulty::Hard => write!(f, "difícil"),
+        }
+    }
+}
+
+impl fmt::Display for Hint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Hint::LessThan => write!(f, "menor que"),
+            Hint::GreaterThan => write!(f, "maior que"),
+            Hint::Multiple => write!(f, "múltiplo de"),
+            Hint::Divisible => write!(f, "divisível po"),
         }
     }
 }
@@ -78,19 +111,19 @@ fn generate_number_and_guesses(dif: Difficulty) -> (u16, u16, String, String) {
     let range_max: String;
 
     match dif {
-        Difficulty::EASY => {
+        Difficulty::Easy => {
             range = 1..=20;
             max_guesses = 5;
             range_min = String::from("1");
             range_max = String::from("20");
         }
-        Difficulty::MEDIUM => {
+        Difficulty::Medium => {
             range = 1..=50;
             max_guesses = 4;
             range_min = String::from("1");
             range_max = String::from("50");
         }
-        Difficulty::HARD => {
+        Difficulty::Hard => {
             range = 1..=100;
             max_guesses = 3;
             range_min = String::from("1");
@@ -121,6 +154,70 @@ fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, ()> {
     }
 }
 
+fn less_than_hint(number: &u16) -> u16 {
+    let mut rng = thread_rng();
+    let range: RangeInclusive<u16> = 2..=*number;
+
+    rng.gen_range(range)
+}
+
+fn greater_than_hint(number: &u16) -> u16 {
+    let mut rng = thread_rng();
+    let range: RangeInclusive<u16> = 2..=*number;
+
+    rng.gen_range(range)
+}
+
+fn multiple_hint(number: &u16) -> u16 {
+    let mut rng = thread_rng();
+    let range: RangeInclusive<u16> = 2..=*number;
+
+    rng.gen_range(range)
+}
+
+fn divisible_hint(number: &u16) -> u16 {
+    let mut rng = thread_rng();
+    let range: RangeInclusive<u16> = 2..=*number;
+
+    rng.gen_range(range)
+}
+
+fn give_hint(number: &u16) -> String {
+    let mut rng = thread_rng();
+    let choice = rng.gen_range(1..=4).to_string();
+
+    let mut hint_result: u16 = 102;
+    let mut hint_type: Option<Hint> = None;
+
+    match choice.parse::<Hint>() {
+        Ok(chosen_hint) => match chosen_hint {
+            Hint::LessThan => {
+                hint_type = Some(Hint::LessThan);
+                hint_result = less_than_hint(number)
+            }
+            Hint::GreaterThan => {
+                hint_type = Some(Hint::GreaterThan);
+                hint_result = greater_than_hint(number)
+            }
+            Hint::Multiple => {
+                hint_type = Some(Hint::Multiple);
+                hint_result = multiple_hint(number)
+            }
+            Hint::Divisible => {
+                hint_type = Some(Hint::Divisible);
+                hint_result = divisible_hint(number)
+            }
+        },
+        Err(_) => (),
+    }
+
+    if hint_type.is_none() {
+        return String::from("Ocorreu um erro na geração de dicas. O jogo irá terminar.");
+    }
+
+    format!("Dica: o número é {} {}.", hint_type.unwrap(), hint_result)
+}
+
 fn main() {
     println!("Bem-vindo ao Number Guesser\n");
     print!("Escolha a dificuldade (1 = fácil, 2 = médio, 3 = difícil): ");
@@ -142,6 +239,6 @@ fn main() {
             "Você acertou em {} tentativas! O número era {}.",
             guesses, rand_number
         ),
-        Err(()) => println!("Você usou todas as tentativas e não acertou :/"),
+        Err(_) => println!("Você usou todas as tentativas e não acertou :/"),
     }
 }
