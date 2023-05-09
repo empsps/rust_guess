@@ -3,6 +3,7 @@ use std::ops::RangeInclusive;
 use std::str::FromStr;
 use std::{fmt, u16};
 
+use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 
 #[derive(PartialEq, Eq)]
@@ -134,7 +135,14 @@ fn generate_number_and_guesses(dif: Difficulty) -> (u16, u16, String, String) {
     (rng.gen_range(range), max_guesses, range_min, range_max)
 }
 
-fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, ()> {
+fn guess_loop(
+    rand_number: &u16,
+    max_guesses: &u16,
+    max_less: &Vec<u16>,
+    min_greater: &Vec<u16>,
+    used_multiple: &bool,
+    used_divisible: &bool,
+) -> Result<u16, ()> {
     let mut current_guesses: u16 = 0;
 
     loop {
@@ -152,7 +160,13 @@ fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, ()> {
                 *max_guesses - current_guesses
             );
 
-            let hint = give_hint(rand_number);
+            let hint = give_hint(
+                rand_number,
+                &max_less,
+                &min_greater,
+                &used_multiple,
+                &used_divisible,
+            );
             println!("{}", hint);
 
             print!("Tente novamente -> ");
@@ -170,9 +184,14 @@ fn less_than_hint(number: &u16) -> u16 {
 }
 
 #[allow(dead_code)]
-fn greater_than_hint(number: &u16) -> u16 {
+fn greater_than_hint(number: &u16, min_greater: &Vec<u16>) -> u16 {
     let mut rng = thread_rng();
-    let range: RangeInclusive<u16> = 2..=*number;
+
+    let min_num = if *min_greater.iter().max().unwrap()  {
+        // TODO: ditch vectors and just store the highest value!!!
+    }
+
+    let range: RangeInclusive<u16> = min_num..=*number;
 
     rng.gen_range(range)
 }
@@ -193,46 +212,63 @@ fn divisible_hint(number: &u16) -> u16 {
     rng.gen_range(range)
 }
 
-fn give_hint(number: &u16) -> String {
+fn give_hint(
+    number: &u16,
+    max_less: &mut Vec<u16>,
+    min_greater: &mut Vec<u16>,
+    used_multiple: &mut bool,
+    used_divisible: &mut bool,
+) -> String {
     let mut rng = thread_rng();
-    let choice = rng.gen_range(1..=4).to_string();
+    let mut hint_vec: Vec<Hint> = Vec::new();
 
-    let mut hint_result: u16 = 102;
-    let mut hint_type: Option<Hint> = None;
+    hint_vec.push(Hint::LessThan);
+    hint_vec.push(Hint::GreaterThan);
 
-    match choice.parse::<Hint>() {
-        Ok(chosen_hint) => match chosen_hint {
-            Hint::LessThan => {
-                hint_type = Some(Hint::LessThan);
-                hint_result = less_than_hint(number)
-            }
-            Hint::GreaterThan => {
-                hint_type = Some(Hint::GreaterThan);
-                hint_result = greater_than_hint(number)
-            }
-            Hint::Multiple => {
-                hint_type = Some(Hint::Multiple);
-                hint_result = multiple_hint(number)
-            }
-            Hint::Divisible => {
-                hint_type = Some(Hint::Divisible);
-                hint_result = divisible_hint(number)
-            }
-        },
-        Err(_) => (),
+    if !*used_multiple {
+        hint_vec.push(Hint::Multiple);
     }
 
-    if hint_type.is_none() {
-        return String::from("Ocorreu um erro na geração de dicas. O jogo irá terminar.");
+    if !*used_divisible {
+        hint_vec.push(Hint::Divisible);
     }
 
-    format!("Dica: o número é {} {}.", hint_type.unwrap(), hint_result)
+    let choice: &Hint = hint_vec.choose(&mut rng).unwrap();
+
+    let hint_result: u16;
+
+    match *choice {
+        Hint::LessThan => {
+            hint_result = less_than_hint(number);
+            max_less.push(hint_result);
+        }
+        Hint::GreaterThan => {
+            hint_result = greater_than_hint(number);
+            min_greater.push(hint_result);
+        }
+        Hint::Multiple => {
+            hint_result = multiple_hint(number);
+            *used_multiple = true;
+        }
+        Hint::Divisible => {
+            hint_result = divisible_hint(number);
+            *used_divisible = true;
+        }
+    }
+
+    format!("Dica: o número é {} {}.", choice, hint_result)
 }
 
 fn main() {
     println!("Bem-vindo ao Number Guesser\n");
     print!("Escolha a dificuldade (1 = fácil, 2 = médio, 3 = difícil): ");
     stdout().flush().unwrap();
+
+    let mut max_less: Vec<u16> = Vec::new();
+    let mut min_greater: Vec<u16> = Vec::new();
+    let mut used_multiple: bool = false;
+    let mut used_divisible: bool = false;
+
     let dif: Difficulty = input_parse_dif();
 
     println!("Você escolheu: {}", &dif);
@@ -244,7 +280,14 @@ fn main() {
     print!("Adivinhe o número de {} a {} -> ", range_min, range_max);
     stdout().flush().unwrap();
 
-    let result: Result<u16, ()> = guess_loop(&rand_number, &max_guesses);
+    let result: Result<u16, ()> = guess_loop(
+        &rand_number,
+        &max_guesses,
+        &max_less,
+        &min_greater,
+        &used_multiple,
+        &used_divisible,
+    );
     match result {
         Ok(guesses) => println!(
             "Você acertou em {0} tentativa{2}! O número era {1}.",
