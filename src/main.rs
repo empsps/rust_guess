@@ -171,7 +171,7 @@ fn guess_loop(
 }
 
 #[allow(dead_code)]
-fn less_than_hint(number: &u16, less_than_nums: &mut Vec<u16>) -> u16 {
+fn less_than_hint(less_than_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
     let hint_index = rng.gen_range(0..less_than_nums.len());
     let actual_hint = less_than_nums[hint_index];
@@ -181,7 +181,7 @@ fn less_than_hint(number: &u16, less_than_nums: &mut Vec<u16>) -> u16 {
 }
 
 #[allow(dead_code)]
-fn greater_than_hint(number: &u16, greater_than_nums: &mut Vec<u16>) -> u16 {
+fn greater_than_hint(greater_than_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
     let hint_index = rng.gen_range(0..greater_than_nums.len());
     let actual_hint = greater_than_nums[hint_index];
@@ -191,7 +191,7 @@ fn greater_than_hint(number: &u16, greater_than_nums: &mut Vec<u16>) -> u16 {
 }
 
 #[allow(dead_code)]
-fn divisible_hint(number: &u16, divisible_nums: &mut Vec<u16>) -> u16 {
+fn divisible_hint(divisible_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
 
     let hint_index = rng.gen_range(0..divisible_nums.len());
@@ -233,13 +233,13 @@ fn give_hint(
 
     match *choice {
         Hint::LessThan => {
-            hint_result = less_than_hint(&number, less_than_nums);
+            hint_result = less_than_hint(less_than_nums);
         }
         Hint::GreaterThan => {
-            hint_result = greater_than_hint(&number, greater_than_nums);
+            hint_result = greater_than_hint(greater_than_nums);
         }
         Hint::Divisible => {
-            hint_result = divisible_hint(&number, divisible_nums);
+            hint_result = divisible_hint(divisible_nums);
         }
     }
 
