@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::io::{stdin, stdout, Write};
 use std::ops::RangeInclusive;
 use std::str::FromStr;
@@ -102,25 +101,20 @@ fn generate_number_and_guesses(dif: Difficulty) -> (u16, u16, String, String) {
     (rng.gen_range(range), max_guesses, range_min, range_max)
 }
 
-fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, Box<dyn Error>> {
+fn guess_loop(rand_number: &u16, max_guesses: &u16) -> Result<u16, ()> {
     let mut current_guesses: u16 = 0;
 
     loop {
         let user_guess: u16 = input_parse_u16();
-        if current_guesses < *max_guesses {
+        current_guesses += 1;
 
-        }
         if user_guess == *rand_number {
-            println!("Você acertou!");
-            return Ok(current_guesses)
+            return Ok(current_guesses);
         } else {
             if current_guesses == *max_guesses {
+                return Err(());
             }
-            current_guesses += 1;
-            println!(
-                "Você errou! {} tentativas restantes.",
-                max_guesses - current_guesses
-            );
+            println!("Você errou! {} tentativas restantes.", current_guesses);
             print!("Tente novamente -> ");
             stdout().flush().unwrap();
         }
@@ -142,5 +136,12 @@ fn main() {
     print!("Adivinhe o número de {} a {} -> ", range_min, range_max);
     stdout().flush().unwrap();
 
-    guess_loop(&rand_number, &max_guesses);
+    let result: Result<u16, ()> = guess_loop(&rand_number, &max_guesses);
+    match result {
+        Ok(guesses) => println!(
+            "Você acertou em {} tentativas! O número era {}",
+            guesses, rand_number
+        ),
+        Err(()) => println!("Você usou todas as tentativas e não acertou :/"),
+    }
 }
