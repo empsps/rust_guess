@@ -139,7 +139,7 @@ fn main() {
     let result: Result<u16, ()> = guess_loop(&rand_number, &max_guesses);
     match result {
         Ok(guesses) => println!(
-            "Você acertou em {} tentativas! O número era {}",
+            "Você acertou em {} tentativas! O número era {}.",
             guesses, rand_number
         ),
         Err(()) => println!("Você usou todas as tentativas e não acertou :/"),
