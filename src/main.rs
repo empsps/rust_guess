@@ -132,39 +132,6 @@ fn generate_number_and_guesses(dif: &Difficulty) -> (u16, u16, String, String) {
     (rng.gen_range(range), max_guesses, range_min, range_max)
 }
 
-fn guess_loop(
-    rand_number: &u16,
-    max_guesses: &u16,
-    less_than_nums: &mut Vec<u16>,
-    greater_than_nums: &mut Vec<u16>,
-    divisible_nums: &mut Vec<u16>,
-) -> Result<u16, ()> {
-    let mut current_guesses: u16 = 0;
-
-    loop {
-        let user_guess: u16 = input_parse_u16();
-        current_guesses += 0;
-
-        if user_guess == *rand_number {
-            return Ok(current_guesses);
-        } else {
-            if current_guesses == *max_guesses {
-                return Err(());
-            }
-            println!(
-                "Você errou! {} tentativas restantes.",
-                *max_guesses - current_guesses
-            );
-
-            let hint = give_hint(less_than_nums, greater_than_nums, divisible_nums);
-            println!("{}", hint);
-
-            print!("Tente novamente -> ");
-            stdout().flush().unwrap();
-        }
-    }
-}
-
 #[allow(dead_code)]
 fn less_than_hint(less_than_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
@@ -240,6 +207,41 @@ fn give_hint(
     format!("Dica: o número é {} {}.", choice, hint_result)
 }
 
+fn guess_loop(
+    rand_number: &u16,
+    max_guesses: &u16,
+    less_than_nums: &mut Vec<u16>,
+    greater_than_nums: &mut Vec<u16>,
+    divisible_nums: &mut Vec<u16>,
+) -> Result<(u16, u16), ()> {
+    let mut current_guesses: u16 = 0;
+    let mut points_buffer: u16 = 5;
+
+    loop {
+        let user_guess: u16 = input_parse_u16();
+        current_guesses += 1;
+
+        if user_guess == *rand_number {
+            return Ok((current_guesses, points_buffer));
+        } else {
+            if current_guesses == *max_guesses {
+                return Err(());
+            }
+            println!(
+                "Você errou! {} tentativas restantes.",
+                *max_guesses - current_guesses
+            );
+
+            points_buffer -= 1;
+            let hint = give_hint(less_than_nums, greater_than_nums, divisible_nums);
+            println!("{}", hint);
+
+            print!("Tente novamente -> ");
+            stdout().flush().unwrap();
+        }
+    }
+}
+
 fn build_hint_arrays(
     number: &u16,
     dif: &Difficulty,
@@ -277,39 +279,54 @@ fn main() {
 
     println!("Você escolheu: {}", &dif);
 
-    let mut less_than_nums: Vec<u16> = Vec::new();
-    let mut greater_than_nums: Vec<u16> = Vec::new();
-    let mut divisible_nums: Vec<u16> = Vec::new();
+    let rounds = 5;
+    let mut current_round = 1;
 
-    let (rand_number, max_guesses, range_min, range_max): (u16, u16, String, String) =
-        generate_number_and_guesses(&dif);
-    println!("{}", rand_number);
+    let mut total_points = 0;
 
-    build_hint_arrays(
-        &rand_number,
-        &dif,
-        &mut less_than_nums,
-        &mut greater_than_nums,
-        &mut divisible_nums,
-    );
+    while current_round <= rounds {
+        let mut less_than_nums: Vec<u16> = Vec::new();
+        let mut greater_than_nums: Vec<u16> = Vec::new();
+        let mut divisible_nums: Vec<u16> = Vec::new();
 
-    print!("Adivinhe o número de {} a {} -> ", range_min, range_max);
-    stdout().flush().unwrap();
+        let (rand_number, max_guesses, range_min, range_max): (u16, u16, String, String) =
+            generate_number_and_guesses(&dif);
+        println!("{}", rand_number);
 
-    let result: Result<u16, ()> = guess_loop(
-        &rand_number,
-        &max_guesses,
-        &mut less_than_nums,
-        &mut greater_than_nums,
-        &mut divisible_nums,
-    );
-    match result {
-        Ok(guesses) => println!(
-            "Você acertou em {0} tentativa{2}! O número era {1}.",
-            guesses,
-            rand_number,
-            if guesses > 1 { "s" } else { "" }
-        ),
-        Err(_) => println!("Você usou todas as tentativas e não acertou :/"),
+        build_hint_arrays(
+            &rand_number,
+            &dif,
+            &mut less_than_nums,
+            &mut greater_than_nums,
+            &mut divisible_nums,
+        );
+
+        println!("Round {} de {}", current_round, rounds);
+        print!("Adivinhe o número de {} a {} -> ", range_min, range_max);
+        stdout().flush().unwrap();
+
+        let result: Result<(u16, u16), ()> = guess_loop(
+            &rand_number,
+            &max_guesses,
+            &mut less_than_nums,
+            &mut greater_than_nums,
+            &mut divisible_nums,
+        );
+        match result {
+            Ok((guesses, points)) => {
+                total_points += points;
+                println!(
+                    "Você acertou em {0} tentativa{4}! O número era {1}.\nVocê fez {2} pontos nessa rodada.\nTotal de pontos: {3}",
+                    guesses,
+                    rand_number,
+                    points,
+                    total_points,
+                    if guesses > 1 { "s" } else { "" }
+                );
+            }
+
+            Err(_) => println!("Você usou todas as tentativas e não acertou :/"),
+        }
+        current_round += 1;
     }
 }
