@@ -156,11 +156,7 @@ fn guess_loop(
                 *max_guesses - current_guesses
             );
 
-            let hint = give_hint(
-                less_than_nums,
-                greater_than_nums,
-                divisible_nums,
-            );
+            let hint = give_hint(less_than_nums, greater_than_nums, divisible_nums);
             println!("{}", hint);
 
             print!("Tente novamente -> ");
