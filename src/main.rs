@@ -133,11 +133,16 @@ fn generate_number_and_guesses(dif: &Difficulty) -> (u16, u16, String, String) {
 }
 
 #[allow(dead_code)]
-fn less_than_hint(less_than_nums: &mut Vec<u16>) -> u16 {
+fn less_than_hint(last_guess: Option<u16>, less_than_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
     let hint_index = rng.gen_range(0..less_than_nums.len());
     let actual_hint = less_than_nums[hint_index];
-    less_than_nums.drain(hint_index..less_than_nums.len());
+
+    let index = less_than_nums
+        .iter()
+        .position(|&x| x == last_guess.unwrap_or(actual_hint));
+
+    less_than_nums.drain(index.unwrap()..less_than_nums.len());
 
     actual_hint
 }
@@ -145,8 +150,10 @@ fn less_than_hint(less_than_nums: &mut Vec<u16>) -> u16 {
 #[allow(dead_code)]
 fn greater_than_hint(greater_than_nums: &mut Vec<u16>) -> u16 {
     let mut rng = thread_rng();
+
     let hint_index = rng.gen_range(0..greater_than_nums.len());
     let actual_hint = greater_than_nums[hint_index];
+
     greater_than_nums.drain(0..=hint_index);
 
     actual_hint
@@ -165,6 +172,7 @@ fn divisible_hint(divisible_nums: &mut Vec<u16>) -> u16 {
 }
 
 fn give_hint(
+    last_guess: Option<u16>,
     current_round: &u16,
     less_than_nums: &mut Vec<u16>,
     greater_than_nums: &mut Vec<u16>,
@@ -173,11 +181,11 @@ fn give_hint(
     let mut rng = thread_rng();
     let mut hint_vec: Vec<Hint> = Vec::new();
 
-    if less_than_nums.len() > 0 && *current_round > 1 {
+    if less_than_nums.len() > 1 && *current_round > 1 {
         hint_vec.push(Hint::LessThan);
     }
 
-    if greater_than_nums.len() > 0 {
+    if greater_than_nums.len() > 1 {
         hint_vec.push(Hint::GreaterThan);
     }
 
@@ -195,10 +203,24 @@ fn give_hint(
 
     match *choice {
         Hint::LessThan => {
-            hint_result = less_than_hint(less_than_nums);
+            hint_result = less_than_hint(last_guess, less_than_nums);
         }
         Hint::GreaterThan => {
-            hint_result = greater_than_hint(greater_than_nums);
+            let guess_index;
+            match last_guess {
+                Some(num) => {
+                    guess_index = greater_than_nums.iter().position(|&x| x == num);
+                    match guess_index {
+                        Some(index) => {
+                            greater_than_nums.drain(0..=index);
+                        }
+                        None => (),
+                    }
+                }
+                None => {
+                    hint_result = greater_than_hint(greater_than_nums);
+                }
+            };
         }
         Hint::Divisible => {
             hint_result = divisible_hint(divisible_nums);
@@ -236,6 +258,7 @@ fn guess_loop(
 
             points_buffer -= 1;
             let hint = give_hint(
+                Some(user_guess),
                 &current_round,
                 less_than_nums,
                 greater_than_nums,
@@ -303,6 +326,8 @@ fn main() {
         let (rand_number, max_guesses, range_min, range_max): (u16, u16, String, String) =
             generate_number_and_guesses(&dif);
 
+        println!("{}", rand_number);
+
         build_hint_arrays(
             &rand_number,
             &dif,
@@ -315,6 +340,16 @@ fn main() {
             "----------- Round {} de {} -----------",
             current_round, rounds
         );
+
+        let hint = give_hint(
+            None,
+            &current_round,
+            &mut less_than_nums,
+            &mut greater_than_nums,
+            &mut divisible_nums,
+        );
+        println!("{}", hint);
+
         print!(
             "(1/{}) Adivinhe o número de {} a {} -> ",
             max_guesses, range_min, range_max
